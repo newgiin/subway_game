@@ -817,6 +817,49 @@ const ALL_LINES = lines.map(l => l.id);
 const LINE_COLORS = Object.fromEntries(lines.map(l => [l.id, l.color]));
 const LIGHT_TEXT_LINES = new Set(['N','Q','R','W','S','L','7','G']);
 
+function ConfettiBurst({ color }) {
+  const particles = React.useMemo(() => Array.from({ length: 48 }, (_, i) => {
+    const angle = (i / 48) * 360 + (Math.random() - 0.5) * 15;
+    const dist = 70 + Math.random() * 130;
+    const rad = (angle * Math.PI) / 180;
+    const tx = Math.cos(rad) * dist;
+    const ty = Math.sin(rad) * dist;
+    const size = 5 + Math.random() * 9;
+    const rotate = Math.random() * 540 - 270;
+    const shape = i % 3;
+    const palette = [color, '#ffffff', '#FFD700', '#ff6b6b', '#74c0fc', '#a9e34b'];
+    const c = palette[i % palette.length];
+    const delay = Math.random() * 0.12;
+    return { tx, ty, size, rotate, shape, c, delay, id: i };
+  }), [color]);
+
+  // Build unique keyframe names per particle using index
+  const keyframeCSS = particles.map(p =>
+    `@keyframes cf${p.id} {
+      0%   { transform: translate(0px,0px) rotate(0deg) scale(1); opacity:1; }
+      100% { transform: translate(${p.tx}px,${p.ty}px) rotate(${p.rotate}deg) scale(0.3); opacity:0; }
+    }`
+  ).join('\n');
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <style>{keyframeCSS}</style>
+      {particles.map(p => (
+        <div key={p.id} style={{
+          position: 'absolute',
+          width: p.size,
+          height: p.shape === 1 ? p.size * 0.45 : p.size,
+          borderRadius: p.shape === 0 ? '50%' : '2px',
+          backgroundColor: p.c,
+          transform: p.shape === 2 ? 'rotate(45deg)' : 'none',
+          animation: `cf${p.id} 1.5s cubic-bezier(0.2,0.8,0.4,1) ${p.delay}s forwards`,
+          opacity: 1,
+        }} />
+      ))}
+    </div>
+  );
+}
+
 export default function SubwayGame() {
   const [leafletReady, setLeafletReady] = useState(false);
   const [mode, setMode] = useState('menu');
@@ -828,6 +871,7 @@ export default function SubwayGame() {
   const [lineIndex, setLineIndex] = useState(0);
   const [lineResult, setLineResult] = useState(null);
   const [wrongGuess, setWrongGuess] = useState('');
+  const [confetti, setConfetti] = useState(null); // { x, y, color }
 
   const mapRef = useRef(null);       // Leaflet map instance
   const markersRef = useRef({});     // station key -> Leaflet marker
@@ -835,6 +879,11 @@ export default function SubwayGame() {
   const selectRef = useRef(null);
   const modeRef = useRef(mode);
   modeRef.current = mode;
+
+  const triggerConfetti = (color = '#FFD700') => {
+    setConfetti({ id: Date.now(), color });
+    setTimeout(() => setConfetti(null), 1800);
+  };
 
   // Load Leaflet scripts once
   useEffect(() => {
@@ -959,6 +1008,7 @@ export default function SubwayGame() {
       setGuesses(p => ({ ...p, [key]: { correct: true } }));
       setScore(s => s + 1);
       setSelectedStation(null);
+      triggerConfetti('#FFD700');
     } else {
       setGuesses(p => ({ ...p, [key]: { correct: false, temporary: true } }));
       setTimeout(() => setGuesses(p => {
@@ -977,6 +1027,7 @@ export default function SubwayGame() {
       setWrongGuess('');
       setGuesses(p => ({ ...p, [key]: { correct: true } }));
       setScore(s => s + 1);
+      triggerConfetti(LINE_COLORS[selectedLine] || '#FFD700');
     } else {
       setWrongGuess(name);
       if (selectRef.current) selectRef.current.value = '';
@@ -1102,6 +1153,11 @@ export default function SubwayGame() {
           </div>
         )}
       </div>
+
+      {/* Confetti burst */}
+      {confetti && (
+        <ConfettiBurst key={confetti.id} color={confetti.color} />
+      )}
 
       {/* Free mode popup */}
       {mode === 'free' && selectedStation && (
