@@ -968,13 +968,19 @@ export default function SubwayGame() {
   };
 
   const handleLineGuess = (name) => {
-    if (lineResult) return;
+    if (lineResult === 'correct') return;
     const cur = lineStations[lineIndex];
     const key = `${cur.id}|${cur.name}`;
     const ok = name === cur.name;
-    setLineResult(ok ? 'correct' : 'wrong');
-    if (!ok) setWrongGuess(name);
-    if (ok) { setGuesses(p => ({ ...p, [key]: { correct: true } })); setScore(s => s + 1); }
+    if (ok) {
+      setLineResult('correct');
+      setWrongGuess('');
+      setGuesses(p => ({ ...p, [key]: { correct: true } }));
+      setScore(s => s + 1);
+    } else {
+      setWrongGuess(name);
+      if (selectRef.current) selectRef.current.value = '';
+    }
   };
 
   const advanceLine = () => {
@@ -1069,25 +1075,28 @@ export default function SubwayGame() {
         {mode === 'line' && cur && (
           <div style={{ position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 420, padding: '0 16px', zIndex: 1000 }}>
             <div className="bg-white rounded-xl shadow-2xl p-4">
-              {!lineResult ? (
-                <>
-                  <p className="text-sm text-gray-500 mb-2 font-medium">What is this station?</p>
-                  <select ref={selectRef} size="6" defaultValue=""
-                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg text-base focus:outline-none focus:border-blue-500"
-                    onChange={e => { if (e.target.value) handleLineGuess(e.target.value); }} autoFocus>
-                    <option value="" disabled>Select a station...</option>
-                    {lineStations.map(s => s.name).sort().map((n, i) => <option key={i} value={n}>{n}</option>)}
-                  </select>
-                </>
-              ) : (
-                <div className={`rounded-lg p-3 ${lineResult === 'correct' ? 'bg-green-100' : 'bg-red-100'}`}>
-                  {lineResult === 'correct'
-                    ? <p className="font-bold text-green-800">✓ Correct! {cur.name}</p>
-                    : <p className="font-bold text-red-800">✗ Wrong. You said "{wrongGuess}". It was <strong>{cur.name}</strong>.</p>}
+              {lineResult === 'correct' ? (
+                <div className="rounded-lg p-3 bg-green-100">
+                  <p className="font-bold text-green-800">✓ Correct! {cur.name}</p>
                   <button onClick={advanceLine} className="mt-2 w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-sm">
                     {lineIndex + 1 >= lineStations.length ? 'See Results' : 'Next Stop →'}
                   </button>
                 </div>
+              ) : (
+                <>
+                  <p className="text-sm text-gray-500 mb-1 font-medium">What is this station?</p>
+                  {wrongGuess ? (
+                    <p className="text-sm font-semibold text-red-600 mb-2">✗ "{wrongGuess}" is wrong — try again!</p>
+                  ) : (
+                    <p className="text-sm text-transparent mb-2 select-none">​</p>
+                  )}
+                  <select ref={selectRef} size="6" defaultValue=""
+                    className={`w-full px-3 py-2 border-2 rounded-lg text-base focus:outline-none focus:border-blue-500 ${wrongGuess ? 'border-red-400' : 'border-gray-300'}`}
+                    onChange={e => { if (e.target.value) handleLineGuess(e.target.value); }} autoFocus>
+                    <option value="" disabled>Select a station...</option>
+                    {lineStations.filter(s => !guesses[`${s.id}|${s.name}`]?.correct).map(s => s.name).sort().map((n, i) => <option key={i} value={n}>{n}</option>)}
+                  </select>
+                </>
               )}
             </div>
           </div>
