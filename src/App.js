@@ -852,7 +852,7 @@ function ConfettiBurst({ color }) {
           borderRadius: p.shape === 0 ? '50%' : '2px',
           backgroundColor: p.c,
           transform: p.shape === 2 ? 'rotate(45deg)' : 'none',
-          animation: `cf${p.id} 1.5s cubic-bezier(0.2,0.8,0.4,1) ${p.delay}s forwards`,
+          animation: `cf${p.id} 0.5s cubic-bezier(0.2,0.8,0.4,1) ${p.delay}s forwards`,
           opacity: 1,
         }} />
       ))}
@@ -882,7 +882,7 @@ export default function SubwayGame() {
 
   const triggerConfetti = (color = '#FFD700') => {
     setConfetti({ id: Date.now(), color });
-    setTimeout(() => setConfetti(null), 1800);
+    setTimeout(() => setConfetti(null), 600);
   };
 
   // Load Leaflet scripts once
@@ -1028,6 +1028,7 @@ export default function SubwayGame() {
       setGuesses(p => ({ ...p, [key]: { correct: true } }));
       setScore(s => s + 1);
       triggerConfetti(LINE_COLORS[selectedLine] || '#FFD700');
+      setTimeout(advanceLine, 550);
     } else {
       setWrongGuess(name);
       if (selectRef.current) selectRef.current.value = '';
@@ -1127,11 +1128,9 @@ export default function SubwayGame() {
           <div style={{ position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 420, padding: '0 16px', zIndex: 1000 }}>
             <div className="bg-white rounded-xl shadow-2xl p-4">
               {lineResult === 'correct' ? (
-                <div className="rounded-lg p-3 bg-green-100">
-                  <p className="font-bold text-green-800">✓ Correct! {cur.name}</p>
-                  <button onClick={advanceLine} className="mt-2 w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-sm">
-                    {lineIndex + 1 >= lineStations.length ? 'See Results' : 'Next Stop →'}
-                  </button>
+                <div style={{ textAlign: 'center', padding: '18px 8px' }}>
+                  <p style={{ fontSize: 28, fontWeight: 900, color: '#16a34a', lineHeight: 1.2 }}>✓ Correct!</p>
+                  <p style={{ fontSize: 18, fontWeight: 700, color: '#15803d', marginTop: 6 }}>{cur.name}</p>
                 </div>
               ) : (
                 <>
